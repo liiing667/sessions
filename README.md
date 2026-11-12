@@ -115,7 +115,9 @@ session = sessions.New(secretKey, oldSecretKey, veryOldSecretKey)
 session.Lifetime = 3 * time.Hour
 ```
 
-When a session cookie is received from a client, all secret keys are looped through to try to decode the session data. When sending the session cookie to a client the first secret key is used to encrypt the session data.
+When a session cookie is received from a client, all secret keys are looped through to try to decode the session data. When sending the session cookie to a client the first secret key is used to encrypt the session data. Cookies which were encrypted with an old key are transparently re-issued using the first (current) key — with their original expiry time preserved — even if the session data was not modified, so old keys can be retired once existing sessions have expired.
+
+All keys (current and old) must be exactly 32 bytes long; `New` panics otherwise.
 
 ## Managing session data
 

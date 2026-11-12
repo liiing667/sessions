@@ -102,16 +102,25 @@ type Session struct {
 // your sessions.
 //
 // The key parameter is the secret you want to use to authenticate and encrypt
-// session cookies. It should be exactly 32 bytes long.
+// session cookies. It must be exactly 32 bytes long.
 //
 // Optionally, the variadic oldKeys parameter can be used to provide an arbitrary
 // number of old Keys. This can be used to ensure that valid cookies continue
-// to work correctly after key rotation.
+// to work correctly after key rotation. Old keys must also be exactly 32 bytes
+// long.
+//
+// New panics if any of the provided keys is not exactly 32 bytes long.
 func New(key []byte, oldKeys ...[]byte) *Session {
 	keys := make([][32]byte, 1)
+	if len(key) != 32 {
+		panic("session: key must be exactly 32 bytes long")
+	}
 	copy(keys[0][:], key)
 
 	for _, key := range oldKeys {
+		if len(key) != 32 {
+			panic("session: old keys must be exactly 32 bytes long")
+		}
 		var newKey [32]byte
 		copy(newKey[:], key)
 		keys = append(keys, newKey)
@@ -176,7 +185,7 @@ func (s *Session) load(r *http.Request) (*cache, error) {
 	}
 
 	c := &cache{}
-	err = c.decode(cookie.Value, s.keys)
+	keyIndex, err := c.decode(cookie.Value, s.keys)
 	if err == errInvalidToken {
 		return newCache(s.Lifetime), nil
 	} else if err != nil {
@@ -185,6 +194,13 @@ func (s *Session) load(r *http.Request) (*cache, error) {
 
 	if time.Now().After(c.Expiry) {
 		return newCache(s.Lifetime), nil
+	}
+
+	// The cookie was encrypted with an old key. Mark the session as modified
+	// so that it is transparently re-issued using the current key, keeping
+	// the original expiry time.
+	if keyIndex > 0 {
+		c.modified = true
 	}
 
 	return c, nil

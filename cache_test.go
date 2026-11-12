@@ -30,7 +30,7 @@ func TestPut(t *testing.T) {
 	c := newCache(time.Hour)
 	r = addCacheToRequestContext(r, c)
 
-	s := New([]byte("secret"))
+	s := New([]byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4"))
 	s.Put(r, "foo", "bar")
 
 	if c.Data["foo"] != "bar" {
@@ -51,7 +51,7 @@ func TestGet(t *testing.T) {
 	c.Data["foo"] = "bar"
 	r = addCacheToRequestContext(r, c)
 
-	s := New([]byte("secret"))
+	s := New([]byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4"))
 	str, ok := s.Get(r, "foo").(string)
 	if !ok {
 		t.Errorf("could not convert %T to string", s.Get(r, "foo"))
@@ -71,7 +71,7 @@ func TestPop(t *testing.T) {
 	c.Data["foo"] = "bar"
 	r = addCacheToRequestContext(r, c)
 
-	s := New([]byte("secret"))
+	s := New([]byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4"))
 	str, ok := s.Pop(r, "foo").(string)
 	if !ok {
 		t.Errorf("could not convert %T to string", s.Get(r, "foo"))
@@ -100,7 +100,7 @@ func TestRemove(t *testing.T) {
 	c.Data["foo"] = "bar"
 	r = addCacheToRequestContext(r, c)
 
-	s := New([]byte("secret"))
+	s := New([]byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4"))
 	s.Remove(r, "foo")
 
 	if c.Data["foo"] != nil {
@@ -121,7 +121,7 @@ func TestExists(t *testing.T) {
 	c.Data["foo"] = "bar"
 	r = addCacheToRequestContext(r, c)
 
-	s := New([]byte("secret"))
+	s := New([]byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4"))
 	if !s.Exists(r, "foo") {
 		t.Errorf("got %v: expected %v", s.Exists(r, "foo"), true)
 	}
@@ -141,7 +141,7 @@ func TestKeys(t *testing.T) {
 	c.Data["woo"] = "waa"
 	r = addCacheToRequestContext(r, c)
 
-	s := New([]byte("secret"))
+	s := New([]byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4"))
 	keys := s.Keys(r)
 	if !reflect.DeepEqual(keys, []string{"foo", "woo"}) {
 		t.Errorf("got %v: expected %v", keys, []string{"foo", "woo"})
@@ -157,7 +157,7 @@ func TestGetString(t *testing.T) {
 	c.Data["foo"] = "bar"
 	r = addCacheToRequestContext(r, c)
 
-	s := New([]byte("secret"))
+	s := New([]byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4"))
 	str := s.GetString(r, "foo")
 	if str != "bar" {
 		t.Errorf("got %q: expected %q", str, "bar")
@@ -178,7 +178,7 @@ func TestGetBool(t *testing.T) {
 	c.Data["foo"] = true
 	r = addCacheToRequestContext(r, c)
 
-	s := New([]byte("secret"))
+	s := New([]byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4"))
 	b := s.GetBool(r, "foo")
 	if b != true {
 		t.Errorf("got %v: expected %v", b, true)
@@ -199,7 +199,7 @@ func TestGetInt(t *testing.T) {
 	c.Data["foo"] = 123
 	r = addCacheToRequestContext(r, c)
 
-	s := New([]byte("secret"))
+	s := New([]byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4"))
 	i := s.GetInt(r, "foo")
 	if i != 123 {
 		t.Errorf("got %v: expected %d", i, 123)
@@ -220,7 +220,7 @@ func TestGetFloat(t *testing.T) {
 	c.Data["foo"] = 123.456
 	r = addCacheToRequestContext(r, c)
 
-	s := New([]byte("secret"))
+	s := New([]byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4"))
 	f := s.GetFloat(r, "foo")
 	if f != 123.456 {
 		t.Errorf("got %v: expected %f", f, 123.456)
@@ -241,7 +241,7 @@ func TestGetBytes(t *testing.T) {
 	c.Data["foo"] = []byte("bar")
 	r = addCacheToRequestContext(r, c)
 
-	s := New([]byte("secret"))
+	s := New([]byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4"))
 	b := s.GetBytes(r, "foo")
 	if !bytes.Equal(b, []byte("bar")) {
 		t.Errorf("got %v: expected %v", b, []byte("bar"))
@@ -265,7 +265,7 @@ func TestGetTime(t *testing.T) {
 	c.Data["foo"] = now
 	r = addCacheToRequestContext(r, c)
 
-	s := New([]byte("secret"))
+	s := New([]byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4"))
 	tm := s.GetTime(r, "foo")
 	if tm != now {
 		t.Errorf("got %v: expected %v", tm, now)
@@ -286,7 +286,7 @@ func TestPopString(t *testing.T) {
 	c.Data["foo"] = "bar"
 	r = addCacheToRequestContext(r, c)
 
-	s := New([]byte("secret"))
+	s := New([]byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4"))
 	str := s.PopString(r, "foo")
 	if str != "bar" {
 		t.Errorf("got %q: expected %q", str, "bar")

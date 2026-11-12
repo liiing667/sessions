@@ -22,24 +22,24 @@ func encrypt(in []byte, key [32]byte) (string, error) {
 	return base64.RawURLEncoding.EncodeToString(box), nil
 }
 
-func decrypt(token string, keys [][32]byte) ([]byte, error) {
+func decrypt(token string, keys [][32]byte) ([]byte, int, error) {
 	box, err := base64.RawURLEncoding.DecodeString(token)
 	if err != nil {
-		return nil, errInvalidToken
+		return nil, 0, errInvalidToken
 	}
 
 	if len(box) < 24 {
-		return nil, errInvalidToken
+		return nil, 0, errInvalidToken
 	}
 	var nonce [24]byte
 	copy(nonce[:], box[:24])
 
-	for _, key := range keys {
+	for i, key := range keys {
 		out, ok := secretbox.Open(nil, box[24:], &nonce, &key)
 		if ok {
-			return out, nil
+			return out, i, nil
 		}
 	}
 
-	return nil, errInvalidToken
+	return nil, 0, errInvalidToken
 }

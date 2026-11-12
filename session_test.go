@@ -185,3 +185,162 @@ func TestOnlySendCookieIfModified(t *testing.T) {
 		t.Errorf("got %q: expected %q", cookie, "")
 	}
 }
+
+func TestOldKeyCookieReissuedWithNewKey(t *testing.T) {
+	oldKey := []byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4")
+	newKey := []byte("9y5Vlur8YvODJEhgOY8m9JVE4u46IpCV")
+
+	s := New(oldKey)
+	s.Lifetime = time.Hour
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.Put(r, "foo", "bar")
+		w.WriteHeader(200)
+	})
+
+	_, cookie := testRequest(t, s.Enable(h), "")
+	if cookie == "" {
+		t.Fatal("expected a session cookie to be set")
+	}
+
+	original := parseSetCookie(t, cookie)
+
+	s2 := New(newKey, oldKey)
+	s2.Lifetime = time.Hour
+
+	h = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, s2.GetString(r, "foo"))
+	})
+
+	body, cookie := testRequest(t, s2.Enable(h), cookie)
+
+	if body != "bar" {
+		t.Errorf("got %q: expected %q", body, "bar")
+	}
+	if cookie == "" {
+		t.Fatal("expected the cookie to be transparently re-issued")
+	}
+
+	reissued := parseSetCookie(t, cookie)
+
+	if !reissued.Expires.Equal(original.Expires) {
+		t.Errorf("got expires %v: expected %v", reissued.Expires, original.Expires)
+	}
+	if reissued.Path != original.Path || reissued.HttpOnly != original.HttpOnly || reissued.SameSite != original.SameSite {
+		t.Errorf("cookie attributes not preserved: got %q", cookie)
+	}
+
+	var newKeyArray, oldKeyArray [32]byte
+	copy(newKeyArray[:], newKey)
+	copy(oldKeyArray[:], oldKey)
+
+	_, keyIndex, err := decrypt(reissued.Value, [][32]byte{newKeyArray, oldKeyArray})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if keyIndex != 0 {
+		t.Errorf("got key index %d: expected %d", keyIndex, 0)
+	}
+
+	// The re-issued cookie must not be re-issued again on subsequent
+	// unmodified requests.
+	h = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, s2.GetString(r, "foo"))
+	})
+
+	_, cookie = testRequest(t, s2.Enable(h), cookie)
+	if cookie != "" {
+		t.Errorf("got %q: expected %q", cookie, "")
+	}
+}
+
+func TestExpiredCookieNotReissued(t *testing.T) {
+	oldKey := []byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4")
+	newKey := []byte("9y5Vlur8YvODJEhgOY8m9JVE4u46IpCV")
+
+	s := New(oldKey)
+	s.Lifetime = time.Second
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.Put(r, "foo", "bar")
+		w.WriteHeader(200)
+	})
+
+	_, cookie := testRequest(t, s.Enable(h), "")
+
+	time.Sleep(time.Second)
+
+	s2 := New(newKey, oldKey)
+
+	h = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "OK")
+	})
+
+	_, cookie = testRequest(t, s2.Enable(h), cookie)
+	if cookie != "" {
+		t.Errorf("got %q: expected %q", cookie, "")
+	}
+}
+
+func TestBadTokenNotReissued(t *testing.T) {
+	oldKey := []byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4")
+	newKey := []byte("9y5Vlur8YvODJEhgOY8m9JVE4u46IpCV")
+
+	s := New(oldKey)
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.Put(r, "foo", "bar")
+		w.WriteHeader(200)
+	})
+
+	_, cookie := testRequest(t, s.Enable(h), "")
+
+	// Tamper with the token so it can no longer be authenticated.
+	c := parseSetCookie(t, cookie)
+	c.Value = c.Value[:len(c.Value)-1] + "A"
+	if c.Value == parseSetCookie(t, cookie).Value {
+		c.Value = c.Value[:len(c.Value)-1] + "B"
+	}
+
+	s2 := New(newKey, oldKey)
+
+	h = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "OK")
+	})
+
+	body, cookie := testRequest(t, s2.Enable(h), c.String())
+	if body != "OK" {
+		t.Errorf("got %q: expected %q", body, "OK")
+	}
+	if cookie != "" {
+		t.Errorf("got %q: expected %q", cookie, "")
+	}
+}
+
+func parseSetCookie(t *testing.T, setCookie string) *http.Cookie {
+	t.Helper()
+	res := http.Response{Header: http.Header{"Set-Cookie": []string{setCookie}}}
+	cookies := res.Cookies()
+	if len(cookies) != 1 {
+		t.Fatalf("got %d cookies: expected 1", len(cookies))
+	}
+	return cookies[0]
+}
+
+func TestNewPanicsOnInvalidKeyLength(t *testing.T) {
+	assertPanic := func(name string, f func()) {
+		t.Helper()
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("%s: expected a panic", name)
+			}
+		}()
+		f()
+	}
+
+	assertPanic("short key", func() { New([]byte("short")) })
+	assertPanic("long key", func() { New(make([]byte, 33)) })
+	assertPanic("short old key", func() {
+		New([]byte("u46IpCV9y5Vlur8YvODJEhgOY8m9JVE4"), []byte("short"))
+	})
+}

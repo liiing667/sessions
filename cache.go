@@ -42,14 +42,14 @@ func (c *cache) encode(key [32]byte) (string, error) {
 	return encrypt(b.Bytes(), key)
 }
 
-func (c *cache) decode(token string, keys [][32]byte) error {
-	b, err := decrypt(token, keys)
+func (c *cache) decode(token string, keys [][32]byte) (int, error) {
+	b, keyIndex, err := decrypt(token, keys)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	r := bytes.NewReader(b)
-	return gob.NewDecoder(r).Decode(c)
+	return keyIndex, gob.NewDecoder(r).Decode(c)
 }
 
 func addCacheToRequestContext(r *http.Request, c *cache) *http.Request {

@@ -18,15 +18,18 @@ func TestEncryptDecrypt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	message2, err := decrypt(token, [][32]byte{key1, key2})
+	message2, keyIndex, err := decrypt(token, [][32]byte{key1, key2})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if keyIndex != 1 {
+		t.Errorf("got %d: expected %d", keyIndex, 1)
 	}
 	if !bytes.Equal(message1, message2) {
 		t.Errorf("got %q: expect %q", message2, message1)
 	}
 
-	_, err = decrypt(token, [][32]byte{key1})
+	_, _, err = decrypt(token, [][32]byte{key1})
 	if err != errInvalidToken {
 		t.Errorf("got %v: expect %q", err, errInvalidToken)
 	}
